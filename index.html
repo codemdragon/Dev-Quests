@@ -247,6 +247,14 @@
                 <canvas id="activityChart"></canvas>
             </div>
 
+            <!-- Achievements Collection -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1 mb-3">Trophy Room</h3>
+                <div id="achievements-grid" class="grid grid-cols-2 gap-3">
+                    <!-- Achievements injected by JS -->
+                </div>
+            </div>
+
             <!-- Deployment Info -->
             <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs text-slate-400 font-mono">
                 <h3 class="font-bold text-slate-200 mb-2">PWA Status</h3>
@@ -812,6 +820,34 @@
                         }
                     }
                 });
+
+                this.renderAchievements();
+            },
+
+            renderAchievements() {
+                const container = document.getElementById('achievements-grid');
+                if (!container) return;
+
+                container.innerHTML = this.state.achievements.map(ach => {
+                    const statusClass = ach.unlocked ? 'border-primary bg-primary/5' : 'border-slate-800 bg-slate-900/50 opacity-60 grayscale';
+                    const iconClass = ach.unlocked ? 'text-primary' : 'text-slate-600';
+                    const glowClass = ach.unlocked ? 'neon-border' : '';
+
+                    return `
+                        <div class="p-3 rounded-xl border ${statusClass} ${glowClass} transition-all duration-500 relative overflow-hidden group">
+                            <div class="flex items-center gap-3 relative z-10">
+                                <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 group-hover:scale-110 transition-transform">
+                                    <i class="fas ${ach.icon} ${iconClass} text-lg"></i>
+                                </div>
+                                <div class="overflow-hidden">
+                                    <div class="text-[11px] font-bold text-slate-100 truncate">${ach.title}</div>
+                                    <div class="text-[9px] text-slate-500 leading-tight line-clamp-2">${ach.desc}</div>
+                                </div>
+                            </div>
+                            ${ach.unlocked ? '<div class="absolute -right-1 -bottom-1 opacity-10"><i class="fas fa-trophy text-4xl text-primary"></i></div>' : ''}
+                        </div>
+                    `;
+                }).join('');
             },
 
             // --- UTILS FOR PWA ---
