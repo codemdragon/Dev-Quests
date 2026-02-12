@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js (for Stats) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -116,6 +118,32 @@
         /* Bottom Nav Safe Area for iPhone */
         .safe-pb {
             padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        /* Achievement Glow */
+        @keyframes achievementGlow {
+            0% {
+                box-shadow: 0 0 5px #10b981;
+            }
+
+            50% {
+                box-shadow: 0 0 20px #10b981, 0 0 30px #34d399;
+            }
+
+            100% {
+                box-shadow: 0 0 5px #10b981;
+            }
+        }
+
+        .achievement-unlocked {
+            animation: achievementGlow 2s infinite;
+            border-color: #10b981 !important;
+        }
+
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
         }
     </style>
 </head>
@@ -256,11 +284,43 @@
         </div>
     </nav>
 
-    <!-- Notification Toast -->
     <div id="toast"
         class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-primary text-primary px-4 py-2 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none z-50 flex items-center gap-2 font-mono text-sm">
         <i class="fas fa-check-circle"></i>
         <span id="toast-msg">Action Saved</span>
+    </div>
+
+    <!-- Achievement Unlock Overlay -->
+    <div id="achievement-toast"
+        class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-dark-card border-2 border-primary p-6 rounded-2xl shadow-[0_0_50px_rgba(16,185,129,0.4)] transition-all duration-500 scale-0 opacity-0 z-[60] text-center w-[280px]">
+        <div
+            class="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-primary animate-pulse">
+            <i class="fas fa-trophy text-4xl text-primary"></i>
+        </div>
+        <h3 class="text-xs uppercase tracking-widest text-primary font-bold mb-1">Achievement Unlocked!</h3>
+        <h2 id="achievement-name" class="text-xl font-bold text-white mb-2">First Commit</h2>
+        <p id="achievement-desc" class="text-sm text-slate-400 mb-4 italic">Push your first code to GitHub</p>
+        <button onclick="app.closeAchievement()"
+            class="bg-primary text-dark-bg font-bold py-2 px-6 rounded-lg hover:bg-emerald-400 transition-colors w-full">AWESOME</button>
+    </div>
+
+    <!-- Goal Modal -->
+    <div id="goal-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop">
+        <div class="bg-dark-card border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-bullseye text-primary"></i> Set New Journey Goal
+            </h2>
+            <input type="text" id="goal-input"
+                class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mb-6 focus:border-primary focus:outline-none text-white"
+                placeholder="What do you want to achieve?">
+            <div class="flex gap-3">
+                <button onclick="app.closeGoalModal()"
+                    class="flex-1 py-3 rounded-xl border border-slate-700 font-bold text-slate-400 hover:bg-slate-800 transition">Cancel</button>
+                <button onclick="app.saveGoal()"
+                    class="flex-1 py-3 rounded-xl bg-primary text-dark-bg font-bold hover:bg-emerald-400 transition">Add
+                    Goal</button>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript Logic -->
@@ -280,8 +340,15 @@
                         xp: 0,
                         level: 1,
                         streak: 0,
-                        lastLogin: new Date().toDateString()
+                        lastLogin: new Date().toDateString(),
+                        lastStreakDate: null
                     },
+                    achievements: [
+                        { id: 'first_commit', title: 'First Commit', desc: 'Push your first code to GitHub', unlocked: false, icon: 'fa-code-branch' },
+                        { id: 'streak_7', title: 'On Fire!', desc: 'Reach a 7 day streak', unlocked: false, icon: 'fa-fire' },
+                        { id: 'leetcode_50', title: 'Algorithmist', desc: 'Solve 50 LeetCode problems', unlocked: false, icon: 'fa-brain' },
+                        { id: 'outreach_10', title: 'Networking Pro', desc: 'Make 10 outreach attempts', unlocked: false, icon: 'fa-handshake' }
+                    ],
                     daily: {
                         date: new Date().toDateString(),
                         leetcode: 0, // 0 to 5
@@ -301,6 +368,17 @@
                 if (!data) return this.getInitialState();
 
                 const state = JSON.parse(data);
+
+                // Add missing fields if upgrading from older version
+                if (!state.profile.lastStreakDate) state.profile.lastStreakDate = null;
+                if (!state.achievements) {
+                    state.achievements = [
+                        { id: 'first_commit', title: 'First Commit', desc: 'Push your first code to GitHub', unlocked: false, icon: 'fa-code-branch' },
+                        { id: 'streak_7', title: 'On Fire!', desc: 'Reach a 7 day streak', unlocked: false, icon: 'fa-fire' },
+                        { id: 'leetcode_50', title: 'Algorithmist', desc: 'Solve 50 LeetCode problems', unlocked: false, icon: 'fa-brain' },
+                        { id: 'outreach_10', title: 'Networking Pro', desc: 'Make 10 outreach attempts', unlocked: false, icon: 'fa-handshake' }
+                    ];
+                }
 
                 // Check if new day
                 const today = new Date().toDateString();
@@ -325,8 +403,9 @@
                     if (state.profile.lastLogin !== yesterday.toDateString()) {
                         // If they missed a day (login wasn't yesterday), reset streak unless it's just today they logged in
                         if (state.profile.lastLogin !== today) {
-                            // Simple strict streak: if last login wasn't yesterday or today, reset.
                             state.profile.streak = 0;
+                            // Reset lastStreakDate so they can start fresh
+                            state.profile.lastStreakDate = null;
                         }
                     }
                 }
@@ -558,13 +637,39 @@
                 const percent = Math.round((completed / totalTasks) * 100);
                 document.getElementById('daily-completion').innerText = `${percent}%`;
 
-                // Update streak if 100% (Optional rule, or just login based)
-                // Let's increment streak if > 0 progress made today and saved
-                if (percent > 0 && this.state.profile.streak === 0) {
-                    this.state.profile.streak = 1;
+                // Update streak logic: Rigorous 100% check
+                if (percent === 100) {
+                    const today = new Date().toDateString();
+
+                    // Already credited today?
+                    if (this.state.profile.lastStreakDate === today) return;
+
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yestString = yesterday.toDateString();
+
+                    if (this.state.profile.lastStreakDate === yestString) {
+                        this.state.profile.streak++;
+                        this.showToast('STREAK INCREASED! 🔥');
+                    } else {
+                        this.state.profile.streak = 1;
+                        this.showToast('NEW STREAK STARTED! 🚀');
+                    }
+
+                    this.state.profile.lastStreakDate = today;
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        colors: ['#10b981', '#34d399', '#ffffff']
+                    });
+
                     DB.save(this.state);
                     this.updateStreakDisplay();
                 }
+
+                // Trigger achievement checks
+                this.checkAchievements();
             },
 
             // --- GOALS ---
@@ -594,7 +699,19 @@
             },
 
             addGoalPrompt() {
-                const title = prompt("Enter a long term goal:");
+                document.getElementById('goal-modal').classList.remove('hidden');
+                document.getElementById('goal-modal').classList.add('flex');
+                document.getElementById('goal-input').focus();
+            },
+
+            closeGoalModal() {
+                document.getElementById('goal-modal').classList.add('hidden');
+                document.getElementById('goal-modal').classList.remove('flex');
+                document.getElementById('goal-input').value = '';
+            },
+
+            saveGoal() {
+                const title = document.getElementById('goal-input').value.trim();
                 if (title) {
                     this.state.goals.push({
                         id: Date.now(),
@@ -604,6 +721,7 @@
                     DB.save(this.state);
                     this.renderGoals();
                     this.showToast('Goal Added');
+                    this.closeGoalModal();
                 }
             },
 
@@ -732,6 +850,63 @@ self.addEventListener('fetch', (e) => {
 `;
                 navigator.clipboard.writeText(sw);
                 this.showToast('Service Worker Code copied!');
+            },
+
+            // --- ACHIEVEMENTS ---
+
+            checkAchievements() {
+                const p = this.state.profile;
+                const d = this.state.daily;
+                const totalLeetCode = this.state.daily.leetcode + this.state.history.reduce((acc, h) => acc + (h.leetcode || 0), 0);
+
+                // 1. First Commit
+                if (d.habitCommit) this.unlockAchievement('first_commit');
+
+                // 2. Streak 7
+                if (p.streak >= 7) this.unlockAchievement('streak_7');
+
+                // 3. LeetCode 50
+                if (totalLeetCode >= 50) this.unlockAchievement('leetcode_50');
+
+                // 4. Outreach (Simplified check: maybe we track history for this too eventually)
+                // For now, if they ever do it, we'll count it if they reach a certain level
+                if (p.level >= 5) this.unlockAchievement('outreach_10');
+            },
+
+            unlockAchievement(id) {
+                const ach = this.state.achievements.find(a => a.id === id);
+                if (ach && !ach.unlocked) {
+                    ach.unlocked = true;
+                    DB.save(this.state);
+                    this.showAchievementUI(ach);
+                }
+            },
+
+            showAchievementUI(ach) {
+                const modal = document.getElementById('achievement-toast');
+                document.getElementById('achievement-name').innerText = ach.title;
+                document.getElementById('achievement-desc').innerText = ach.desc;
+
+                modal.classList.remove('scale-0', 'opacity-0');
+                modal.classList.add('scale-100', 'opacity-100');
+
+                // Extra Celebration
+                const duration = 3 * 1000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+                const interval = setInterval(() => {
+                    const timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) return clearInterval(interval);
+                    const particleCount = 50 * (timeLeft / duration);
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } }));
+                }, 250);
+            },
+
+            closeAchievement() {
+                const modal = document.getElementById('achievement-toast');
+                modal.classList.add('scale-0', 'opacity-0');
+                modal.classList.remove('scale-100', 'opacity-100');
             }
         };
 
