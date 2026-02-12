@@ -34,22 +34,28 @@ self.addEventListener('activate', (event) => {
     return self.clients.claim();
 });
 
-// Fetch event - Cache-First strategy
+// Fetch event - Correct Cache-First strategy
 self.addEventListener('fetch', (event) => {
+    // 1. Check if the request is in the cache.
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request).then((fetchResponse) => {
+        caches.match(event.request).then((cachedResponse) => {
+            // 2. If it's in the cache, return the cached response immediately.
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            // 3. If not in cache, fetch from the network.
+            return fetch(event.request).then((networkResponse) => {
+                // 4. (Optional but Recommended) Clone the response and add it to the cache for future offline access.
                 return caches.open(CACHE_NAME).then((cache) => {
-                    // Filter what to cache if needed, but for 100% offline we should cache everything fetched
-                    // if it wasn't in the initial list (e.g. fonts loaded by FA)
-                    if (event.request.url.startsWith('http') || event.request.url.startsWith(self.location.origin)) {
-                        cache.put(event.request, fetchResponse.clone());
-                    }
-                    return fetchResponse;
+                    // Cache the new resource for next time
+                    cache.put(event.request, networkResponse.clone());
+                    return networkResponse;
                 });
             });
         }).catch(() => {
-            // Fallback for offline (optional, as we aim for 100% cache)
+            // This part is crucial for when both cache and network fail (i.e., you are offline
+            // and the resource was never cached). It can return a fallback page.
             if (event.request.mode === 'navigate') {
                 return caches.match('./index.html');
             }
