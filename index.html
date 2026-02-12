@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="DevQuests - Gamify your developer journey with daily quests, achievements, and progress tracking">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DevQuests">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎯</text></svg>">
+    <title>DevQuests - Level Up Your Dev Skills</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- HEADER / STATUS BAR -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="app-title">
+                    <svg class="app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    DevQuests
+                </h1>
+                <p class="level-text">Level <span id="levelDisplay">1</span> Developer</p>
+            </div>
+            <div class="header-right">
+                <div class="xp-total" id="xpTotal">0 XP</div>
+                <div class="xp-label">Total</div>
+            </div>
+        </div>
+        
+        <!-- XP Progress Bar -->
+        <div class="xp-bar-container">
+            <div class="xp-bar" id="xpBar"></div>
+        </div>
+        <div class="xp-bar-labels">
+            <span id="currentXP">0 XP</span>
+            <span id="nextLevelXP">100 XP TO LVL 2</span>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="mainContent">
+        <!-- Content will be dynamically loaded here -->
+    </main>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-tab="dailies">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>Dailies</span>
+        </button>
+        <button class="nav-item" data-tab="goals">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+            <span>Goals</span>
+        </button>
+        <button class="nav-item" data-tab="achievements">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="7"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+            </svg>
+            <span>Trophies</span>
+        </button>
+        <button class="nav-item" data-tab="stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>Stats</span>
+        </button>
+    </nav>
+
+    <!-- Achievement Notification -->
+    <div class="achievement-popup" id="achievementPopup">
+        <div class="achievement-content">
+            <div class="achievement-icon">🏆</div>
+            <div class="achievement-text">
+                <div class="achievement-title">Achievement Unlocked!</div>
+                <div class="achievement-desc" id="achievementDesc"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Up Notification -->
+    <div class="levelup-popup" id="levelupPopup">
+        <div class="levelup-content">
+            <div class="levelup-icon">⚡</div>
+            <div class="levelup-text">
+                <div class="levelup-title">LEVEL UP!</div>
+                <div class="levelup-level" id="levelupLevel">Level 2</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    
+    <!-- Service Worker Registration (uncomment when ready) -->
+    <script>
+        // if ('serviceWorker' in navigator) {
+        //     window.addEventListener('load', () => {
+        //         navigator.serviceWorker.register('/sw.js')
+        //             .then(registration => console.log('SW registered:', registration))
+        //             .catch(error => console.log('SW registration failed:', error));
+        //     });
+        // }
+    </script>
+</body>
+</html>
