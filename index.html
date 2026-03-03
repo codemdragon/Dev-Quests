@@ -23,6 +23,12 @@
     <script>
         tailwind.config = {
             darkMode: 'class',
+            safelist: [
+                'bg-amber-500', 'border-amber-500', 'text-amber-400',
+                'bg-sky-500', 'border-sky-500', 'text-sky-400',
+                'bg-primary', 'border-primary', 'text-primary',
+                'text-dark-bg'
+            ],
             theme: {
                 extend: {
                     colors: {
@@ -210,18 +216,57 @@
         </div>
 
         <!-- VIEW: GOALS -->
-        <div id="view-goals" class="view-section hidden p-4 pb-24 space-y-4">
-            <div class="flex justify-between items-end mb-2">
-                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-widest pl-1">Long Term Roadmap</h2>
-                <button onclick="app.addGoalPrompt()"
-                    class="bg-primary text-dark-bg px-3 py-1 rounded text-sm font-bold hover:bg-emerald-400 transition">
-                    <i class="fas fa-plus mr-1"></i> Add Goal
-                </button>
+        <div id="view-goals" class="view-section hidden p-4 pb-24 space-y-6">
+
+            <!-- Daily Goals Section -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold text-amber-400 uppercase tracking-widest pl-1 flex items-center gap-2">
+                        <i class="fas fa-sun text-amber-400"></i> Daily Goals
+                    </h2>
+                    <button onclick="app.addGoalPrompt('daily')"
+                        class="bg-amber-500 text-dark-bg px-3 py-1 rounded text-sm font-bold hover:bg-amber-400 transition">
+                        <i class="fas fa-plus mr-1"></i> Add
+                    </button>
+                </div>
+                <div id="daily-goals-list" class="space-y-2">
+                    <!-- Daily goals injected by JS -->
+                </div>
             </div>
 
-            <div id="goals-list" class="space-y-3">
-                <!-- Goals injected by JS -->
-                <div class="text-center text-slate-500 mt-10 italic">No active goals. Add one to start your journey.
+            <hr class="border-slate-800">
+
+            <!-- Temporary Goals Section -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold text-sky-400 uppercase tracking-widest pl-1 flex items-center gap-2">
+                        <i class="fas fa-clock text-sky-400"></i> Temp Goals
+                    </h2>
+                    <button onclick="app.addGoalPrompt('temp')"
+                        class="bg-sky-500 text-dark-bg px-3 py-1 rounded text-sm font-bold hover:bg-sky-400 transition">
+                        <i class="fas fa-plus mr-1"></i> Add
+                    </button>
+                </div>
+                <div id="temp-goals-list" class="space-y-2">
+                    <!-- Temp goals injected by JS -->
+                </div>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- Long Term Goals Section -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold text-primary uppercase tracking-widest pl-1 flex items-center gap-2">
+                        <i class="fas fa-bullseye text-primary"></i> Long Term
+                    </h2>
+                    <button onclick="app.addGoalPrompt('long')"
+                        class="bg-primary text-dark-bg px-3 py-1 rounded text-sm font-bold hover:bg-emerald-400 transition">
+                        <i class="fas fa-plus mr-1"></i> Add
+                    </button>
+                </div>
+                <div id="goals-list" class="space-y-2">
+                    <!-- Long term goals injected by JS -->
                 </div>
             </div>
         </div>
@@ -316,10 +361,27 @@
     <div id="goal-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop">
         <div class="bg-dark-card border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <i class="fas fa-bullseye text-primary"></i> Set New Journey Goal
+                <i class="fas fa-bullseye text-primary"></i> Add New Goal
             </h2>
+
+            <!-- Type Selector Pills -->
+            <div class="flex gap-2 mb-4">
+                <button onclick="app.selectGoalType('daily')" id="pill-daily"
+                    class="goal-type-pill flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border border-slate-700 text-slate-400 transition-all text-center">
+                    <i class="fas fa-sun mr-1"></i>Daily
+                </button>
+                <button onclick="app.selectGoalType('temp')" id="pill-temp"
+                    class="goal-type-pill flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border border-slate-700 text-slate-400 transition-all text-center">
+                    <i class="fas fa-clock mr-1"></i>Temp
+                </button>
+                <button onclick="app.selectGoalType('long')" id="pill-long"
+                    class="goal-type-pill flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border border-slate-700 text-slate-400 transition-all text-center">
+                    <i class="fas fa-bullseye mr-1"></i>Long Term
+                </button>
+            </div>
+
             <input type="text" id="goal-input"
-                class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mb-6 focus:border-primary focus:outline-none text-white"
+                class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 mb-4 focus:border-primary focus:outline-none text-white"
                 placeholder="What do you want to achieve?">
             <div class="flex gap-3">
                 <button onclick="app.closeGoalModal()"
@@ -367,7 +429,9 @@
                         habitCommit: false
                     },
                     history: [], // For stats: { date: '...', questsCompleted: 3 }
-                    goals: [] // { id, title, completed }
+                    goals: [], // { id, title, completed } — Long Term
+                    tempGoals: [], // { id, title, completed } — Temporary
+                    dailyGoals: [] // { id, title, completed } — Daily (resets each day)
                 };
             },
 
@@ -379,6 +443,8 @@
 
                 // Add missing fields if upgrading from older version
                 if (!state.profile.lastStreakDate) state.profile.lastStreakDate = null;
+                if (!state.tempGoals) state.tempGoals = [];
+                if (!state.dailyGoals) state.dailyGoals = [];
                 if (!state.achievements) {
                     state.achievements = [
                         { id: 'first_commit', title: 'First Commit', desc: 'Push your first code to GitHub', unlocked: false, icon: 'fa-code-branch' },
@@ -404,6 +470,9 @@
                         habitRead: false,
                         habitCommit: false
                     };
+
+                    // Clear daily goals on new day
+                    state.dailyGoals = [];
 
                     // Streak Logic
                     const yesterday = new Date();
@@ -682,34 +751,80 @@
 
             // --- GOALS ---
 
+            selectedGoalType: 'daily',
+
+            getGoalArray(type) {
+                if (type === 'daily') return 'dailyGoals';
+                if (type === 'temp') return 'tempGoals';
+                return 'goals';
+            },
+
             renderGoals() {
-                const container = document.getElementById('goals-list');
-                const goals = this.state.goals;
+                // Daily Goals
+                this.renderGoalSection('daily-goals-list', this.state.dailyGoals, 'daily',
+                    'amber', 'No daily goals yet — add one for today!');
+
+                // Temp Goals
+                this.renderGoalSection('temp-goals-list', this.state.tempGoals, 'temp',
+                    'sky', 'No temporary goals — add quick one-off tasks!');
+
+                // Long Term Goals
+                this.renderGoalSection('goals-list', this.state.goals, 'long',
+                    'emerald', 'No long-term goals — set your roadmap!');
+            },
+
+            renderGoalSection(containerId, goals, type, color, emptyMsg) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
 
                 if (goals.length === 0) {
-                    container.innerHTML = '<div class="text-center text-slate-600 mt-8 py-8 border-2 border-dashed border-slate-800 rounded-xl">No active goals</div>';
+                    container.innerHTML = `<div class="text-center text-slate-600 py-4 border border-dashed border-slate-800 rounded-xl text-sm">${emptyMsg}</div>`;
                     return;
                 }
 
+                const accentMap = { amber: 'text-amber-400', sky: 'text-sky-400', emerald: 'text-primary' };
+                const accent = accentMap[color] || 'text-primary';
+
                 container.innerHTML = goals.map(g => `
-                    <div class="bg-dark-card border border-slate-700 rounded-xl p-4 flex items-center gap-3">
-                        <button onclick="app.toggleGoal(${g.id})" class="text-xl ${g.completed ? 'text-primary' : 'text-slate-600 hover:text-slate-400'}">
+                    <div class="bg-dark-card border border-slate-700 rounded-xl p-3 flex items-center gap-3">
+                        <button onclick="app.toggleGoal('${type}', ${g.id})" class="text-lg ${g.completed ? accent : 'text-slate-600 hover:text-slate-400'}">
                             <i class="far ${g.completed ? 'fa-check-circle' : 'fa-circle'}"></i>
                         </button>
-                        <div class="flex-1 ${g.completed ? 'line-through text-slate-500' : 'text-slate-200'}">
+                        <div class="flex-1 text-sm ${g.completed ? 'line-through text-slate-500' : 'text-slate-200'}">
                             ${g.title}
                         </div>
-                        <button onclick="app.deleteGoal(${g.id})" class="text-red-900 hover:text-red-500 px-2">
-                            <i class="fas fa-trash"></i>
+                        <button onclick="app.deleteGoal('${type}', ${g.id})" class="text-red-900 hover:text-red-500 px-2">
+                            <i class="fas fa-trash text-xs"></i>
                         </button>
                     </div>
                 `).join('');
             },
 
-            addGoalPrompt() {
+            addGoalPrompt(type) {
+                this.selectedGoalType = type || 'daily';
+                this.updateGoalTypePills();
                 document.getElementById('goal-modal').classList.remove('hidden');
                 document.getElementById('goal-modal').classList.add('flex');
                 document.getElementById('goal-input').focus();
+            },
+
+            selectGoalType(type) {
+                this.selectedGoalType = type;
+                this.updateGoalTypePills();
+            },
+
+            updateGoalTypePills() {
+                const pills = document.querySelectorAll('.goal-type-pill');
+                pills.forEach(p => {
+                    p.classList.remove('bg-amber-500', 'bg-sky-500', 'bg-primary', 'text-dark-bg', 'border-amber-500', 'border-sky-500', 'border-primary');
+                    p.classList.add('border-slate-700', 'text-slate-400');
+                });
+                const active = document.getElementById(`pill-${this.selectedGoalType}`);
+                if (!active) return;
+                const colorMap = { daily: 'amber-500', temp: 'sky-500', long: 'primary' };
+                const c = colorMap[this.selectedGoalType];
+                active.classList.remove('border-slate-700', 'text-slate-400');
+                active.classList.add(`bg-${c}`, 'text-dark-bg', `border-${c}`);
             },
 
             closeGoalModal() {
@@ -721,7 +836,8 @@
             saveGoal() {
                 const title = document.getElementById('goal-input').value.trim();
                 if (title) {
-                    this.state.goals.push({
+                    const arrKey = this.getGoalArray(this.selectedGoalType);
+                    this.state[arrKey].push({
                         id: Date.now(),
                         title: title,
                         completed: false
@@ -733,8 +849,9 @@
                 }
             },
 
-            toggleGoal(id) {
-                const goal = this.state.goals.find(g => g.id === id);
+            toggleGoal(type, id) {
+                const arrKey = this.getGoalArray(type);
+                const goal = this.state[arrKey].find(g => g.id === id);
                 if (goal) {
                     goal.completed = !goal.completed;
                     DB.save(this.state);
@@ -742,9 +859,10 @@
                 }
             },
 
-            deleteGoal(id) {
+            deleteGoal(type, id) {
                 if (confirm('Delete this goal?')) {
-                    this.state.goals = this.state.goals.filter(g => g.id !== id);
+                    const arrKey = this.getGoalArray(type);
+                    this.state[arrKey] = this.state[arrKey].filter(g => g.id !== id);
                     DB.save(this.state);
                     this.renderGoals();
                 }
